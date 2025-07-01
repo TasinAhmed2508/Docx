@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment
+.env
+venv/
+env/
+
+# Generated files by the application
+generated_files/
+
+# IDE / Editor specific
+.vscode/
+.idea/
+*.swp
+*.swo

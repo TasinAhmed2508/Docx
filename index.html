@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Equation to DOCX Generator</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: auto;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        textarea {
+            width: 95%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            min-height: 150px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .results {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+        }
+        .results h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        #rawAiResponse {
+            white-space: pre-wrap; /* Preserve whitespace and newlines */
+            word-wrap: break-word; /* Break long words */
+            background-color: #f8f9fa;
+            border: 1px solid #ced4da;
+            padding: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 13px;
+        }
+        #downloadLinkContainer a {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        #downloadLinkContainer a:hover {
+            text-decoration: underline;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        .loader {
+            border: 5px solid #f3f3f3; /* Light grey */
+            border-top: 5px solid #3498db; /* Blue */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none; /* Hidden by default */
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Equation to DOCX Generator</h1>
+
+        <label for="textInput">Enter your text (with equations):</label>
+        <textarea id="textInput" placeholder="e.g., The Pythagorean theorem is a^2 + b^2 = c^2. Explain its significance."></textarea>
+
+        <button onclick="generateDocx()">Generate DOCX & Show AI Code</button>
+
+        <div class.loader id="loader"></div>
+
+        <div id="resultsContainer" class="results" style="display: none;">
+            <h2>Results:</h2>
+
+            <div id="errorDisplay" class="error" style="display: none;"></div>
+
+            <h3>Raw AI-Generated Python Code:</h3>
+            <pre id="rawAiResponseContainer" style="display: none;"><code id="rawAiResponse"></code></pre>
+
+            <h3>Download DOCX:</h3>
+            <div id="downloadLinkContainer" style="display: none;">
+                <a id="downloadLink" href="#" target="_blank">Download output.docx</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function generateDocx() {
+            const textInput = document.getElementById('textInput').value;
+            if (!textInput.trim()) {
+                alert('Please enter some text.');
+                return;
+            }
+
+            const resultsContainer = document.getElementById('resultsContainer');
+            const errorDisplay = document.getElementById('errorDisplay');
+            const rawAiResponseContainer = document.getElementById('rawAiResponseContainer');
+            const rawAiResponseEl = document.getElementById('rawAiResponse');
+            const downloadLinkContainer = document.getElementById('downloadLinkContainer');
+            const downloadLink = document.getElementById('downloadLink');
+            const loader = document.getElementById('loader');
+
+            // Reset UI
+            resultsContainer.style.display = 'none';
+            errorDisplay.style.display = 'none';
+            errorDisplay.textContent = '';
+            rawAiResponseContainer.style.display = 'none';
+            rawAiResponseEl.textContent = '';
+            downloadLinkContainer.style.display = 'none';
+            loader.style.display = 'block'; // Show loader
+
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: textInput }),
+                });
+
+                loader.style.display = 'none'; // Hide loader
+                resultsContainer.style.display = 'block';
+                const result = await response.json();
+
+                if (response.ok) {
+                    rawAiResponseEl.textContent = result.raw_ai_response || "No raw AI response provided.";
+                    rawAiResponseContainer.style.display = 'block';
+
+                    if (result.download_url) {
+                        downloadLink.href = result.download_url;
+                        downloadLinkContainer.style.display = 'block';
+                    } else {
+                        downloadLinkContainer.style.display = 'none';
+                    }
+                    if (result.message) {
+                         // Could display this message if needed, e.g., above results
+                        console.log("Server message:", result.message);
+                    }
+                     if (result.error) { // Handle errors reported in a 200 OK response's JSON
+                        errorDisplay.textContent = `Error: ${result.error}. Raw AI Response: ${result.raw_ai_response || 'N/A'}`;
+                        errorDisplay.style.display = 'block';
+                    }
+
+                } else {
+                    // Handle HTTP errors (4xx, 5xx)
+                    let errorMsg = `Server error: ${response.status}`;
+                    if (result.error) {
+                        errorMsg = `Error: ${result.error}`;
+                    }
+                    if (result.raw_ai_response) {
+                        errorMsg += `\nRaw AI Response (if any):\n${result.raw_ai_response}`;
+                    }
+                    if (result.traceback) {
+                         errorMsg += `\nTraceback:\n${result.traceback}`;
+                    }
+                    errorDisplay.textContent = errorMsg;
+                    errorDisplay.style.display = 'block';
+
+                    // Still display raw response if available, even on error
+                    if (result.raw_ai_response) {
+                        rawAiResponseEl.textContent = result.raw_ai_response;
+                        rawAiResponseContainer.style.display = 'block';
+                    }
+                }
+            } catch (error) {
+                loader.style.display = 'none'; // Hide loader
+                resultsContainer.style.display = 'block';
+                errorDisplay.textContent = `Network or client-side error: ${error.message}`;
+                errorDisplay.style.display = 'block';
+                console.error('Error during fetch:', error);
+            }
+        }
+    </script>
+</body>
+</html>
