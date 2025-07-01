@@ -1,0 +1,5 @@
+google-generativeai
+python-docx
+math2docx
+python-dotenv
+# tkinter is included with Python standard library 
