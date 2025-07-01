@@ -2,4 +2,5 @@ google-generativeai
 python-docx
 math2docx
 python-dotenv
+Flask
 # tkinter is included with Python standard library 
